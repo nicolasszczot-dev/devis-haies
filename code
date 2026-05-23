@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Devis Haie Premium – Immédiat, Zone</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f9f9f9; }
+    .question { margin-bottom: 15px; }
+    .suniform, .multilevel, .zones { display: none; margin-top: 20px; padding: 10px 15px; background: #fff; border-radius: 6px; border: 1px solid #ddd; }
+    label { display: block; margin: 5px 0; }
+    input, select, button { margin: 5px 0; padding: 5px; }
+    button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .info-btn { margin-left: 5px; padding: 0 8px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 50%; cursor: pointer; }
+    .tooltip { display: block; font-size: 12px; color: #444; background: #f0f0f0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Devis – Haie Premium, immédiat, zone</h1>
+
+  <div class="question">
+    <label>La haie est‑elle à hauteur uniforme sur toute la longueur ?</label>
+    <label><input type="radio" name="hauteurUniforme" value="oui" onchange="afficherSection()"> Oui</label>
+    <label><input type="radio" name="hauteurUniforme" value="non" onchange="afficherSection()"> Non</label>
+  </div>
+
+  <div id="sectionUniforme" class="suniform">
+    <h2>Haie à hauteur uniforme</h2>
+    <label>Longueur totale (m) : <input type="number" min="0.1" step="0.1" id="longueurUniforme" value="0"></label>
+    <label>Hauteur (m) : <input type="number" min="0.1" step="0.1" id="hauteurUniforme" value="0"></label>
+    <label>Largeur de la haie (m) : <input type="number" min="0.1" step="0.1" id="largeurUniforme" value="0"></label>
+    <label>Nombre de faces à tailler :
+      <select id="nbFacesUniforme" onchange="afficherChoixDeuxFaces('uniforme')">
+        <option value="1">1 face</option>
+        <option value="2">2 faces</option>
+        <option value="3">3 faces</option>
+      </select>
+    </label>
+    <label id="typeDeuxFacesUniformeLabel" style="display:none;">Type de 2 faces :
+      <select id="typeDeuxFacesUniforme">
+        <option value="verticales">2 faces verticales</option>
+        <option value="verticale_dessus">1 verticale + dessus</option>
+      </select>
+    </label>
+    <label>Catégorie de haie :
+      <select id="categorieUniforme">
+        <option value="1">Facile à couper</option>
+        <option value="2">Moyennement facile</option>
+        <option value="3">Bois dur / difficile</option>
+      </select>
+      <button type="button" class="info-btn" onclick="toggleInfo('uniforme')">i</button>
+    </label>
+    <span id="infoUniforme" class="tooltip" style="display:none;">
+      <strong>Facile à couper</strong> : troène, photinia jeune, laurier‑cerise jeune, bambou de haie non lignifié, spirée, forsythia, viorne jeune, charmille jeune, haies de jeunes pousses mixtes, cyprès de Leyland, laurier‑cerise adulte, photinia adulte, laurier‑palme, elaéagnus, charme, viorne adulte.
+      <br><br>
+      <strong>Moyennement facile</strong> : noisetier, fusain, cornouiller, aulne jeune, sureau, aubépine jeune à moyenne.
+      <br><br>
+      <strong>Bois dur / difficile</strong> : aubépine âgée, prunellier, pyracantha, houx, berbéris, ronces, genêt lignifié, ajonc, sureau très vieux, charme/hêtre très âgé, châtaignier, érable, chêne, rejets ligneux épais, cerisier / gros arbres intégrés à la haie.
+    </span>
+    <button onclick="creerZones('uniforme')">Créer les zones</button>
+  </div>
+
+  <div id="sectionMultilevel" class="multilevel">
+    <h2>Haie à différentes hauteurs (zones)</h2>
+    <label>Combien de zones y a‑t‑il ?
+      <input type="number" id="nbZones" min="1" step="1" value="1" onchange="afficherZones()">
+    </label>
+    <div id="paliers"></div>
+    <button onclick="creerZones('multilevel')">Créer les zones</button>
+  </div>
+
+  <div id="sectionTva" class="zones" style="display:none;">
+    <label>Taux de TVA à appliquer :
+      <select id="tauxTVA">
+        <option value="0.00">0 % (micro‑entreprise)</option>
+        <option value="0.20">20 % (taux normal)</option>
+        <option value="0.10">10 % (taux intermédiaire)</option>
+        <option value="0.055">5,5 % (taux réduit)</option>
+      </select>
+    </label>
+    <p id="totalResult"></p>
+  </div>
+
+  <div id="sectionZones" class="zones" style="display:none;">
+    <h2>Zones</h2>
+    <div id="zonesContent"></div>
+  </div>
+
+  <div style="margin-top:20px; text-align:center;">
+    <button type="button" onclick="resetForm()" style="background:#dc3545;">Reset</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('sectionUniforme').style.display = 'none';
+      document.getElementById('sectionMultilevel').style.display = 'none';
+      document.getElementById('sectionZones').style.display = 'none';
+      document.getElementById('sectionTva').style.display = 'none';
+      afficherZones();
+    });
+
+    function afficherSection() {
+      const choix = document.querySelector('input[name="hauteurUniforme"]:checked')?.value || '';
+      document.getElementById('sectionUniforme').style.display = choix === 'oui' ? 'block' : 'none';
+      document.getElementById('sectionMultilevel').style.display = choix === 'non' ? 'block' : 'none';
+      document.getElementById('sectionZones').style.display = 'none';
+      document.getElementById('sectionTva').style.display = 'none';
+    }
+
+    function afficherChoixDeuxFaces(type) {
+      if (type !== 'uniforme') return;
+      const select = document.getElementById('nbFacesUniforme');
+      const label = document.getElementById('typeDeuxFacesUniformeLabel');
+      label.style.display = select.value === '2' ? 'block' : 'none';
+    }
+
+    function afficherChoixDeuxFacesZone(i) {
+      const select = document.getElementById(`nbFacesZone${i}`);
+      const label = document.getElementById(`typeDeuxFacesZoneLabel${i}`);
+      label.style.display = select.value === '2' ? 'block' : 'none';
+    }
+
+    function afficherZones() {
+      const nb = parseInt(document.getElementById('nbZones').value) || 1;
+      const zonesDiv = document.getElementById('paliers');
+      zonesDiv.innerHTML = '';
+      for (let i = 1; i <= nb; i++) {
+        zonesDiv.innerHTML += `
+          <h3>Zone ${i}</h3>
+          <label>Longueur (m) : <input type="number" min="0.1" step="0.1" id="longueurPalier${i}" value="0"></label>
+          <label>Hauteur (m) : <input type="number" min="0.1" step="0.1" id="hauteurPalier${i}" value="0"></label>
+          <label>Largeur de la haie (m) : <input type="number" min="0.1" step="0.1" id="largeurZone${i}" value="0"></label>
+          <label>Nombre de faces à tailler :
+            <select id="nbFacesZone${i}" onchange="afficherChoixDeuxFacesZone(${i})">
+              <option value="1">1 face</option>
+              <option value="2">2 faces</option>
+              <option value="3">3 faces</option>
+            </select>
+          </label>
+          <label id="typeDeuxFacesZoneLabel${i}" style="display:none;">Type de 2 faces :
+            <select id="typeDeuxFacesZone${i}">
+              <option value="verticales">2 faces verticales</option>
+              <option value="verticale_dessus">1 verticale + dessus</option>
+            </select>
+          </label>
+          <label>Catégorie de haie :
+            <select id="categorieZone${i}">
+              <option value="1">Facile à couper</option>
+              <option value="2">Moyennement facile</option>
+              <option value="3">Bois dur / difficile</option>
+            </select>
+            <button type="button" class="info-btn" onclick="toggleInfo(${i})">i</button>
+          </label>
+          <span id="infoZone${i}" class="tooltip" style="display:none;">
+            <strong>Facile à couper</strong> : troène, photinia jeune, laurier‑cerise jeune, bambou de haie non lignifié, spirée, forsythia, viorne jeune, charmille jeune, haies de jeunes pousses mixtes, cyprès de Leyland, laurier‑cerise adulte, photinia adulte, laurier‑palme, elaéagnus, charme, viorne adulte.
+            <br><br>
+            <strong>Moyennement facile</strong> : noisetier, fusain, cornouiller, aulne jeune, sureau, aubépine jeune à moyenne.
+            <br><br>
+            <strong>Bois dur / difficile</strong> : aubépine âgée, prunellier, pyracantha, houx, berbéris, ronces, genêt lignifié, ajonc, sureau très vieux, charme/hêtre très âgé, châtaignier, érable, chêne, rejets ligneux épais, cerisier / gros arbres intégrés à la haie.
+          </span>
+        `;
+      }
+    }
+
+    function coefEssence(cat) {
+      if (cat === 1) return 1.00;
+      if (cat === 2) return 1.12;
+      if (cat === 3) return 1.25;
+      return 1.00;
+    }
+
+    function coefFaces(nbFaces, typeDeuxFaces) {
+      if (nbFaces === 1) return 1.00;
+      if (nbFaces === 2) return typeDeuxFaces === 'verticales' ? 1.15 : 1.30;
+      if (nbFaces === 3) return 1.45;
+      return 1.00;
+    }
+
+    function coefLargeur(largeur) {
+      return largeur >= 1.2 ? 1.15 : 1.00;
+    }
+
+    function facesVerticales(nbFaces, typeDeuxFaces) {
+      if (nbFaces === 1) return 1;
+      if (nbFaces === 2) return typeDeuxFaces === 'verticales' ? 2 : 1;
+      if (nbFaces === 3) return 2;
+      return 1;
+    }
+
+    function prixBase(hauteur) {
+      if (hauteur < 2) return 8;
+      if (hauteur <= 3) return 11;
+      return 15;
+    }
+
+    function detailsCalcul(longueur, hauteur, largeur, cat, nbFaces, typeDeuxFaces) {
+      const baseML = prixBase(hauteur);
+      const base = longueur * baseML;
+      const cEss = coefEssence(cat);
+      const cLar = coefLargeur(largeur);
+      const cFac = coefFaces(nbFaces, typeDeuxFaces);
+      const prixZone = base * cEss * cLar * cFac;
+      const mlVerts = longueur * facesVerticales(nbFaces, typeDeuxFaces);
+      return { baseML, base, cEss, cLar, cFac, prixZone, mlVerts };
+    }
+
+    function creerZones(type) {
+      const zonesDiv = document.getElementById('zonesContent');
+      zonesDiv.innerHTML = '';
+      let html = '<table border="1" width="100%">' +
+                 '<tr><th>Zone</th><th>Longueur</th><th>Hauteur</th><th>Largeur</th><th>Faces</th><th>Catégorie</th><th>Base</th><th>Essence</th><th>Largeur</th><th>Faces coef</th><th>Prix zone</th></tr>';
+      let htTotal = 0;
+      let total = 0;
+      let mlVerticaux = 0;
+
+      const addRow = (i, longueur, hauteur, largeur, nbFaces, catText, d) => {
+        html += `<tr>
+          <td>Zone ${i}</td>
+          <td>${longueur.toFixed(1)}</td>
+          <td>${hauteur.toFixed(1)}</td>
+          <td>${largeur.toFixed(2)}</td>
+          <td>${nbFaces}</td>
+          <td>${catText}</td>
+          <td>${d.base.toFixed(2)} €</td>
+          <td>x ${d.cEss.toFixed(2)}</td>
+          <td>x ${d.cLar.toFixed(2)}</td>
+          <td>x ${d.cFac.toFixed(2)}</td>
+          <td>${d.prixZone.toFixed(2)} €</td>
+        </tr>`;
+      };
+
+      const processZone = (i, longueur, hauteur, largeur, cat, nbFaces, typeDeuxFaces, catText) => {
+        const d = detailsCalcul(longueur, hauteur, largeur, cat, nbFaces, typeDeuxFaces);
+        htTotal += d.prixZone;
+        total += longueur;
+        mlVerticaux += d.mlVerts;
+        addRow(i, longueur, hauteur, largeur, nbFaces, catText, d);
+      };
+
+      if (type === 'uniforme') {
+        const longueur = parseFloat(document.getElementById('longueurUniforme').value) || 0;
+        const hauteur = parseFloat(document.getElementById('hauteurUniforme').value) || 0;
+        const largeur = parseFloat(document.getElementById('largeurUniforme').value) || 0;
+        const nbFaces = parseInt(document.getElementById('nbFacesUniforme').value) || 1;
+        const typeDeuxFaces = document.getElementById('typeDeuxFacesUniforme')?.value || 'verticales';
+        if (longueur <= 0 || hauteur <= 0) { alert('Veuillez remplir correctement les champs de longueur et de hauteur.'); return; }
+        const select = document.getElementById('categorieUniforme');
+        const cat = parseFloat(select.value) || 1;
+        processZone(1, longueur, hauteur, largeur, cat, nbFaces, typeDeuxFaces, select.options[select.selectedIndex].text);
+      } else if (type === 'multilevel') {
+        const nb = parseInt(document.getElementById('nbZones').value) || 1;
+        for (let i = 1; i <= nb; i++) {
+          const longueur = parseFloat(document.getElementById(`longueurPalier${i}`).value) || 0;
+          const hauteur = parseFloat(document.getElementById(`hauteurPalier${i}`).value) || 0;
+          const largeur = parseFloat(document.getElementById(`largeurZone${i}`).value) || 0;
+          const nbFaces = parseInt(document.getElementById(`nbFacesZone${i}`).value) || 1;
+          const typeDeuxFaces = document.getElementById(`typeDeuxFacesZone${i}`)?.value || 'verticales';
+          if (longueur <= 0) { alert(`Veuillez remplir une longueur > 0 pour la zone ${i}.`); return; }
+          const select = document.getElementById(`categorieZone${i}`);
+          const cat = parseFloat(select.value) || 1;
+          processZone(i, longueur, hauteur, largeur, cat, nbFaces, typeDeuxFaces, select.options[select.selectedIndex].text);
+        }
+      } else {
+        alert('Veuillez remplir correctement les champs.');
+        return;
+      }
+
+      html += '</table>';
+      const nbTrajetsDch = Math.max(1, Math.ceil(mlVerticaux / 100));
+      const coutDechetterie = nbTrajetsDch * 30;
+      htTotal += coutDechetterie;
+      html += `<p><strong>Longueur totale : ${total.toFixed(1)} m</strong></p>`;
+      html += `<p><strong>Faces verticales totales : ${mlVerticaux.toFixed(1)} m</strong></p>`;
+      html += `<div><p><strong>Tranches de 100 m : ${nbTrajetsDch} trajet(s)</strong></p><p>Démarches déchetterie : <strong>${coutDechetterie.toFixed(2)} €</strong></p></div>`;
+      document.getElementById('sectionZones').style.display = 'block';
+      document.getElementById('sectionTva').style.display = 'block';
+      zonesDiv.innerHTML = html;
+      calculerTTC(htTotal);
+    }
+
+    function calculerTTC(htZone) {
+      const select = document.getElementById('tauxTVA');
+      const tauxTVA = select?.value ? parseFloat(select.value) : 0.20;
+      const montantTVA = htZone * tauxTVA;
+      const ttc = htZone * (1 + tauxTVA);
+      document.getElementById('totalResult').innerHTML = `<p>Montant HT (somme des prix zone + déchetterie) : <strong>${htZone.toFixed(2)} €</strong></p><p>Montant TVA (${(tauxTVA * 100).toFixed(1)} %) : <strong>${montantTVA.toFixed(2)} €</strong></p><p>Prix TTC final : <strong>${ttc.toFixed(2)} €</strong></p>`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('tauxTVA')?.addEventListener('change', () => {
+        const resultDiv = document.getElementById('totalResult');
+        const match = resultDiv.innerHTML.match(/Montant HT \(somme des prix zone \+ déchetterie\) : <strong>(\d+,\d+|\d+\.\d+) €<\/strong>/);
+        const ht = match ? parseFloat(match[1].replace(',', '.')) : 0;
+        calculerTTC(ht);
+      });
+    });
+
+    function resetForm() {
+      document.querySelectorAll('input[type="radio"]').forEach(el => el.checked = false);
+      document.querySelectorAll('input[type="number"]').forEach(el => el.value = 0);
+      document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+      document.getElementById('sectionUniforme').style.display = 'none';
+      document.getElementById('sectionMultilevel').style.display = 'none';
+      document.getElementById('sectionZones').style.display = 'none';
+      document.getElementById('sectionTva').style.display = 'none';
+      document.getElementById('zonesContent').innerHTML = '';
+      document.getElementById('totalResult').innerHTML = '';
+      document.getElementById('paliers').innerHTML = '';
+      afficherZones();
+    }
+
+    function toggleInfo(zoneIndex) {
+      const el = document.getElementById(zoneIndex === 'uniforme' ? 'infoUniforme' : `infoZone${zoneIndex}`);
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>
